@@ -60,6 +60,11 @@ TODO: This section should be expanded and refined, perhaps with live demos and c
           display.updateIfVisible();
         }
 
+Development
+-----------
+
+Measviz has a test suite using the [Jasmine](https://github.com/pivotal/jasmine) test framework, compatible with version v1.2.0-24-g5ca2888.
+
 License
 -------
 
