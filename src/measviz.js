@@ -57,7 +57,10 @@ var measviz;
   function createToggle(storage, storageName, callback) {
     var toggleState = true;
     try {
-      toggleState = !!JSON.parse(storage.getItem(storageName));
+      var stored = storage.getItem(storageName);
+      if (stored !== null) {
+        toggleState = !!JSON.parse(stored);
+      }
     } catch (e) {}
     var toggler = mkelement("button", ["toggle"]);
     function update() {
