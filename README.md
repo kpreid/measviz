@@ -5,6 +5,11 @@ Measviz is a library for easily capturing and visualizing performance data withi
 
 Disclaimer: This version of Measviz is a very early draft, freshly extracted from being an inseparable component of [Cubes](https://github.com/kpreid/cubes). The current interface should be considered subject to change. If you depend on this library, make sure you specify the particular revision.
 
+Requirements
+------------
+
+The browser must support ECMAScript 5 and the `<canvas>` 2D Context API. `localStorage` is useful but not mandatory.
+
 Usage
 -----
 
