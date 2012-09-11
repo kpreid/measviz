@@ -38,7 +38,9 @@ TODO: This section should be expanded and refined, perhaps with live demos and c
 
 * Create the HTML display.
 
-        var display = measuring.all.createDisplay(document, "my-app.measviz");
+        var display = measuring.all.createDisplay(
+          document, localStorage, "my-app.measviz");
+        
         document.body.appendChild(display.element);
   
   The display will use `localStorage` to store the state of its toggles, under keys which are prefixed with the provided string followed by a “`.`”.
