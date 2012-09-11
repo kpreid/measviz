@@ -40,6 +40,18 @@ var measviz;
     return element;
   }
   
+  // list of names obtained from game-shim
+  var requestAnimationFrame =
+    window.requestAnimationFrame ||
+    window.webkitRequestAnimationFrame ||
+    window.mozRequestAnimationFrame ||
+    window.msRequestAnimationFrame ||
+    window.oRequestAnimationFrame ||
+    function (callback) {
+      setTimeout(callback, 1000/60);
+    };
+  requestAnimationFrame = requestAnimationFrame.bind(window);
+  
   // --- Implementation ---
   
   function createToggle(storageName, callback) {
@@ -110,7 +122,7 @@ var measviz;
       },
       updateIfVisible: function () {
         if (!animFrameWasRequested) {
-          window.requestAnimationFrame/*shimmed*/(function () {
+          requestAnimationFrame(function () {
             animFrameWasRequested = false;
             this.update();
           }.bind(this), container);
