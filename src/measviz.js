@@ -164,69 +164,27 @@ var measviz;
     this.historyIndex = 0;
   }
   Quantity.prototype.createDisplay = function (document, storage, stateContext) {
-    var labelElem, valueText, sparkCanvas;
+    var labelElem, valueText;
+    var graph = new Graph({
+      buffer: this.history,
+      getBufferIndex: function () { return this.historyIndex; }.bind(this),
+      getHeight: function () { return parseInt(window.getComputedStyle(labelElem, null).height, 10) - 3; }
+    });
     var container = mkelement("div", ["item", "quantity"],
       labelElem = mkelement("span", ["label"], this.label + ": "),
       mkelement("span", ["value"],
         valueText = document.createTextNode("")),
-      sparkCanvas = mkelement("canvas", ["sparkline"])
+      graph.element
     );
     
-    // sparkline
-    var sparkLength = sparkCanvas.width  = this.history.length;
-    var sparkHeight = sparkCanvas.height = 1; // updated later via computed style
-    var sparkContext = sparkCanvas.getContext("2d");
-    var lastUpdateIndex = 0;
-    
-    var fillColor = "rgba(127,127,127,0.5)";
-    
-    return {
+    return Object.freeze({
       element: container,
       update: function () {
         valueText.data = String(this.show());
         
-        var indexOffset = this.historyIndex;
-        if (elementIsVisible(sparkCanvas) &&
-            lastUpdateIndex !== indexOffset /* there is new data */) {
-          lastUpdateIndex = indexOffset;
-          
-          sparkHeight = parseInt(window.getComputedStyle(labelElem, null).height, 10) - 3;
-          if (sparkHeight != sparkCanvas.height) sparkCanvas.height = sparkHeight;
-          
-          var history = this.history;
-          var fgColor = window.getComputedStyle(sparkCanvas, null).color;
-          
-          sparkContext.clearRect(0, 0, sparkLength, sparkHeight);
-          
-          // Find maximum and minimum of graph
-          var miny = 0 /* Infinity */; // assume 0 is a meaningful minimum
-          var maxy = -Infinity;
-          var i;
-          for (i = sparkLength - 1; i >= 0; i--) {
-            var y = history[i];
-            miny = min(y, miny);
-            maxy = max(y, maxy);
-          }
-          
-          // Establish viewport of graph. The maximum zoom is 1 value unit = 1px.
-          var viewScale = -min(1, (sparkHeight - 1)/(maxy - miny));
-          var viewOffset = -miny * viewScale + sparkHeight - 1;
-
-          // Draw graph: first background fill, then line
-          sparkContext.fillStyle = fillColor;
-          var scaley;
-          for (i = sparkLength - 1; i >= 0; i--) {
-            scaley = history[(i + indexOffset) % sparkLength] * viewScale + viewOffset;
-            sparkContext.fillRect(i, scaley, 1, sparkHeight);
-          }
-          sparkContext.fillStyle = fgColor;
-          for (i = sparkLength - 1; i >= 0; i--) {
-            scaley = history[(i + indexOffset) % sparkLength] * viewScale + viewOffset;
-            sparkContext.fillRect(i, scaley, 1, 1);
-          }
-        }
+        graph.draw();
       }.bind(this)
-    };
+    });
   };
   Quantity.prototype.start = function () {};
   Quantity.prototype.end = function () {
@@ -294,8 +252,72 @@ var measviz;
   }
   TaskGroup.prototype = Object.create(ViewGroup.prototype);
   
+  // buffer is an array of data values used as a circular buffer.
+  // getBufferIndex is a function returning the buffer position (the index
+  // AFTER the last written element).
+  function Graph(args) {
+    var buffer = args.buffer;
+    var getBufferIndex = args.getBufferIndex;
+    var getHeight = args.getHeight;
+    
+    var sparkCanvas = mkelement("canvas", ["sparkline"]);
+    var sparkLength = sparkCanvas.width  = buffer.length;
+    var sparkHeight = sparkCanvas.height = 1; // updated later via computed style
+    var sparkContext = sparkCanvas.getContext("2d");
+    var lastUpdateIndex = 0;
+    
+    var fillColor = "rgba(127,127,127,0.5)";
+    
+    this.element = sparkCanvas;
+    
+    this.draw = function draw() {
+      var indexOffset = getBufferIndex();
+      if (elementIsVisible(sparkCanvas) &&
+          lastUpdateIndex !== indexOffset /* there is new data */) {
+        lastUpdateIndex = indexOffset;
+      
+        sparkHeight = getHeight();
+        if (sparkHeight != sparkCanvas.height) sparkCanvas.height = sparkHeight;
+      
+        var fgColor = window.getComputedStyle(sparkCanvas, null).color;
+      
+        sparkContext.clearRect(0, 0, sparkLength, sparkHeight);
+      
+        // Find maximum and minimum of graph
+        var miny = 0 /* Infinity */; // assume 0 is a meaningful minimum
+        var maxy = -Infinity;
+        var i;
+        for (i = sparkLength - 1; i >= 0; i--) {
+          var y = buffer[i];
+          miny = min(y, miny);
+          maxy = max(y, maxy);
+        }
+      
+        // Establish viewport of graph. The maximum zoom is 1 value unit = 1px.
+        var viewScale = -min(1, (sparkHeight - 1)/(maxy - miny));
+        var viewOffset = -miny * viewScale + sparkHeight - 1;
+
+        // Draw graph: first background fill, then line
+        sparkContext.fillStyle = fillColor;
+        var scaley;
+        for (i = sparkLength - 1; i >= 0; i--) {
+          scaley = buffer[(i + indexOffset) % sparkLength] * viewScale + viewOffset;
+          sparkContext.fillRect(i, scaley, 1, sparkHeight);
+        }
+        sparkContext.fillStyle = fgColor;
+        for (i = sparkLength - 1; i >= 0; i--) {
+          scaley = buffer[(i + indexOffset) % sparkLength] * viewScale + viewOffset;
+          sparkContext.fillRect(i, scaley, 1, 1);
+        }
+      }
+    };
+    
+    Object.freeze(this);
+  }
+  
   measviz = Object.freeze({
     Counter: Counter,
+    Graph: Graph,
     TaskGroup: TaskGroup,
     TopGroup: TopGroup,
     ViewGroup: ViewGroup

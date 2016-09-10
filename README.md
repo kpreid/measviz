@@ -3,6 +3,8 @@ Measviz
 
 Measviz is a library for easily capturing and visualizing performance data within a JavaScript-based game, animation, or simulation in a single Web page.
 
+It also includes a facility for displaying real-time scrolling [sparkline](https://en.wikipedia.org/wiki/Sparkline) graphs, designed for displaying the gathered performance data but usable independently.
+
 Disclaimer: This version of Measviz is a very early draft, freshly extracted from being an inseparable component of [Cubes](https://github.com/kpreid/cubes). The current interface should be considered subject to change. If you depend on this library, make sure you specify the particular revision.
 
 Requirements

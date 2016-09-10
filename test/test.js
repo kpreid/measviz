@@ -19,10 +19,11 @@
     return element.offsetWidth > 0;
   }
   
+  var Counter = measviz.Counter;
+  var Graph = measviz.Graph;
+  var TaskGroup = measviz.TaskGroup;
   var TopGroup = measviz.TopGroup;
   var ViewGroup = measviz.ViewGroup;
-  var TaskGroup = measviz.TaskGroup;
-  var Counter = measviz.Counter;
   
   beforeEach(function () {
     this.addMatchers({
@@ -43,6 +44,19 @@
       document.body.appendChild(display.element);
       
       expect(document.querySelector(".measviz-quantity")).toBeVisible();
+    });
+  });
+  
+  describe("Graph", function () {
+    it("should not emit smoke", function () {
+      var graph = new Graph({
+        buffer: new Uint32Array(),
+        getBufferIndex: function () { return 0; }
+      });
+      document.body.appendChild(graph.element);
+      expect(graph.element.nodeName).toBe('CANVAS');
+      graph.draw();
+      graph.draw();
     });
   });
   
