@@ -168,7 +168,8 @@ var measviz;
     var graph = new Graph({
       buffer: this.history,
       getBufferIndex: function () { return this.historyIndex; }.bind(this),
-      getHeight: function () { return parseInt(window.getComputedStyle(labelElem, null).height, 10) - 3; }
+      getHeight: function () { return parseInt(window.getComputedStyle(labelElem, null).height, 10) - 3; },
+      min: 0,  // TODO make this & other scale options exposed as parameters
     });
     var container = mkelement("div", ["item", "quantity"],
       labelElem = mkelement("span", ["label"], this.label + ": "),
@@ -255,10 +256,17 @@ var measviz;
   // buffer is an array of data values used as a circular buffer.
   // getBufferIndex is a function returning the buffer position (the index
   // AFTER the last written element).
+  // min, max, low, high are interpreted as for the <meter> element, except
+  // that values outside the min and max will adjust the scale rather than
+  // be clamped.
   function Graph(args) {
     var buffer = args.buffer;
     var getBufferIndex = args.getBufferIndex;
     var getHeight = args.getHeight;
+    var scaleMin = "min" in args ? +args.min : Infinity;
+    var scaleMax = "max" in args ? +args.max : -Infinity;
+    var scaleLow = "low" in args ? +args.low : -Infinity;
+    var scaleHigh = "high" in args ? +args.high : Infinity;
     
     var sparkCanvas = mkelement("canvas", ["sparkline"]);
     var sparkLength = sparkCanvas.width  = buffer.length;
@@ -267,6 +275,8 @@ var measviz;
     var lastUpdateIndex = 0;
     
     var fillColor = "rgba(127,127,127,0.5)";
+    var alarmFillColor = "rgba(255,0,0,0.5)";
+    var alarmFgColor = "#F00";
     
     this.element = sparkCanvas;
     
@@ -283,9 +293,9 @@ var measviz;
       
         sparkContext.clearRect(0, 0, sparkLength, sparkHeight);
       
-        // Find maximum and minimum of graph
-        var miny = 0 /* Infinity */; // assume 0 is a meaningful minimum
-        var maxy = -Infinity;
+        // Find maximum and minimum of data to set scale.
+        var miny = scaleMin;
+        var maxy = scaleMax;
         var i;
         for (i = sparkLength - 1; i >= 0; i--) {
           var y = buffer[i];
@@ -297,17 +307,39 @@ var measviz;
         var viewScale = -min(1, (sparkHeight - 1)/(maxy - miny));
         var viewOffset = -miny * viewScale + sparkHeight - 1;
 
-        // Draw graph: first background fill, then line
+        // Draw graph
+        var scaley, value;
+        // Normal background fill
         sparkContext.fillStyle = fillColor;
-        var scaley;
         for (i = sparkLength - 1; i >= 0; i--) {
-          scaley = buffer[(i + indexOffset) % sparkLength] * viewScale + viewOffset;
+          value = buffer[(i + indexOffset) % sparkLength];
+          scaley = value * viewScale + viewOffset;
           sparkContext.fillRect(i, scaley, 1, sparkHeight);
         }
+        // Normal line
         sparkContext.fillStyle = fgColor;
         for (i = sparkLength - 1; i >= 0; i--) {
-          scaley = buffer[(i + indexOffset) % sparkLength] * viewScale + viewOffset;
+          value = buffer[(i + indexOffset) % sparkLength];
+          scaley = value * viewScale + viewOffset;
           sparkContext.fillRect(i, scaley, 1, 1);
+        }
+        if (isFinite(scaleLow) || isFinite(scaleHigh)) {
+          // Alarm background fill
+          sparkContext.fillStyle = alarmFillColor;
+          for (i = sparkLength - 1; i >= 0; i--) {
+            value = buffer[(i + indexOffset) % sparkLength];
+            if (!(value < scaleLow || value > scaleHigh)) continue;
+            scaley = value * viewScale + viewOffset;
+            sparkContext.fillRect(i, scaley, 1, sparkHeight);
+          }
+          // Alarm line
+          sparkContext.fillStyle = alarmFgColor;
+          for (i = sparkLength - 1; i >= 0; i--) {
+            value = buffer[(i + indexOffset) % sparkLength];
+            if (!(value < scaleLow || value > scaleHigh)) continue;
+            scaley = value * viewScale + viewOffset;
+            sparkContext.fillRect(i, scaley, 1, 1);
+          }
         }
       }
     };
